@@ -8,9 +8,11 @@
 
     let username = db.authStore?.model?.username || '';
     let notes: any[] = [];
+    let filteredNotes: any[] = [];
     let loading = true;
     let showConfirmModal = false;
     let noteToDelete: any = null;
+    let search = '';
 
     const noteStyles = [
         { bgColor: 'bg-pink-100', borderColor: 'border-pink-300', buttonColor: 'bg-pink-400 hover:bg-pink-500' },
@@ -32,6 +34,7 @@
                 filter: `author = "${username}"`,
             });
             notes = records.items;
+            filteredNotes = notes;
             loading = false;
         } catch (err) {
             console.error('Error fetching notes:', err);
@@ -60,11 +63,23 @@
             try {
                 await deleteNote(noteToDelete.id);
                 notes = notes.filter(note => note.id !== noteToDelete.id);
+                filteredNotes = filteredNotes.filter(note => note.id !== noteToDelete.id); // Update filtered notes
                 showConfirmModal = false;
                 noteToDelete = null;
             } catch (err) {
                 console.error('Error deleting note:', err);
             }
+        }
+    }
+
+    function searchNotes() {
+        if (search) {
+            filteredNotes = notes.filter(note => 
+                note.title.toLowerCase().includes(search.toLowerCase()) || 
+                note.content.toLowerCase().includes(search.toLowerCase())
+            );
+        } else {
+            filteredNotes = notes;
         }
     }
 </script>
@@ -89,11 +104,11 @@
         </div>
     </div>
     
-    {#if notes.length === 0}
+    {#if filteredNotes.length === 0}
         <p class="text-center mt-5 mb-5">No notes found.</p>
     {:else}
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-8 mb-5">
-            {#each notes as note}
+            {#each filteredNotes as note}
                 {@const style = getRandomStyle()}
                 <div class="{style.bgColor} border-2 {style.borderColor} shadow-lg rounded-lg p-4 h-full flex flex-col transition-all duration-300 w-80">
                     <h2 class="text-xl font-semibold mb-2 text-center break-words">{note.title}</h2>
@@ -121,7 +136,7 @@
             {/each}
         </div>
     {/if}
-    <div class="flex mt-4">
+    <div class="flex mt-4 mb-5">
         <button on:click={() => goto('/create')} class="inline-block py-2 px-4 sm:px-6 bg-orange-400 hover:bg-orange-500 text-white font-semibold rounded-lg transition-colors duration-300 text-sm mr-2">
             Create Note
         </button>
@@ -129,6 +144,7 @@
             Back to Home
         </button>
     </div>
+    <input type="text" placeholder="Search notes..." bind:value={search} on:input={searchNotes} class="border rounded-lg p-2 mb-4 focus:outline-none focus:ring-orange-500 focus:border-orange-500" />
 </div>
 <Footer />
 {/if}
